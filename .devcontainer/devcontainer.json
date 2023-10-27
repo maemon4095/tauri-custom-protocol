@@ -1,0 +1,25 @@
+{
+    "name": "tauri-custom-protocol",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "init": true,
+    "features": {
+        "ghcr.io/devcontainers/features/desktop-lite:1": {
+            "webPort": "8080"
+        }
+    },
+    "forwardPorts": [
+        8080
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "tauri-apps.tauri-vscode",
+                "rust-lang.rust-analyzer",
+                "denoland.vscode-deno"
+            ]
+        }
+    },
+    "remoteUser": "root"
+}
