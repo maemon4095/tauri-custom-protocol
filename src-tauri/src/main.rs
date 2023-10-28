@@ -27,10 +27,7 @@ fn main() {
                 let Some(query_part) = req.uri().split_once('?').map(|t| t.1) else {
                     break 'method None;
                 };
-
-                let mut queries = query_part.split('?').filter_map(|q| q.split_once('='));
-
-                queries.find(|(key, _)| *key == "method").map(|t| t.1)
+                query_part.strip_prefix("method=")
             };
 
             let Some(method) = method else {
