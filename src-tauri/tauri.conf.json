@@ -1,7 +1,7 @@
 {
   "build": {
-    "beforeDevCommand": "deno run -A build.ts serve --dev",
-    "beforeBuildCommand": "deno run -A build.ts build",
+    "beforeDevCommand": "trunk serve",
+    "beforeBuildCommand": "trunk build",
     "devPath": "http://localhost:1420",
     "distDir": "../dist",
     "withGlobalTauri": true
@@ -31,10 +31,10 @@
       ]
     },
     "security": {
-      "csp":  {
-				"default-src": "'self'",
-				"connect-src": "mybinary:"
-			},
+      "csp": {
+        "default-src": "'self'",
+        "connect-src": "mybinary:"
+      },
       "freezePrototype": true
     },
 
