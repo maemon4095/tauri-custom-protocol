@@ -11,35 +11,33 @@ export async function fetchWithBinaryBody(url, body) {
 }
 "#)]
 extern "C" {
-
     #[wasm_bindgen(js_name=fetchWithBinaryBody)]
     async fn fetch(url: &str, body: &[u8]) -> JsValue;
-
 }
 
 async fn sample_binary_method(input: Vec<usize>) -> String {
     #[derive(serde::Serialize)]
     struct Args(Vec<usize>);
 
-    let bin = bincode::serialize(&Args(input)).unwrap();
+    let bin = ::bincode::serialize(&Args(input)).unwrap();
 
     let response = fetch(
         "https://mybinary.localhost?method=sample_binary_method",
         &bin,
     )
     .await;
-    let response: web_sys::Response = response.dyn_into().unwrap();
+    let response: ::web_sys::Response = response.dyn_into().unwrap();
 
     let buffer = response.array_buffer().expect("invalid response");
-    let buffer = wasm_bindgen_futures::JsFuture::from(buffer)
+    let buffer = ::wasm_bindgen_futures::JsFuture::from(buffer)
         .await
         .expect("invalid response");
 
-    let array = js_sys::Uint8Array::new(&buffer);
+    let array = ::js_sys::Uint8Array::new(&buffer);
 
     let vec = array.to_vec();
 
-    let ret: String = bincode::deserialize(&vec).unwrap();
+    let ret: String = ::bincode::deserialize(&vec).unwrap();
 
     ret
 }
@@ -52,7 +50,10 @@ pub fn app() -> Html {
         move |_| {
             let result = result.clone();
             spawn_local(async move {
-                let val = sample_binary_method(vec![1, 2, 3, 4, 5]).await;
+                // 8,000,000 bytes
+                let payload = std::iter::repeat(1).take(1000000).collect();
+
+                let val = sample_binary_method(payload).await;
 
                 result.set(val);
             })

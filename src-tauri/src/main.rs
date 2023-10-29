@@ -12,11 +12,11 @@ fn __mybinary_ipc_sample_binary_method(
     #[derive(serde::Deserialize)]
     struct Args(Vec<usize>);
 
-    let args: Args = bincode::deserialize(bin)?;
+    let args: Args = ::bincode::deserialize(bin)?;
 
     let ret = sample_binary_method(args.0);
 
-    bincode::serialize_into(buf, &ret)
+    ::bincode::serialize_into(buf, &ret)
 }
 
 fn main() {
@@ -25,25 +25,25 @@ fn main() {
         .register_uri_scheme_protocol("mybinary", |_, req| {
             let method = 'method: {
                 let Some(query_part) = req.uri().split_once('?').map(|t| t.1) else {
-                    break 'method None;
+                    break 'method ::std::option::Option::None;
                 };
                 query_part.strip_prefix("method=")
             };
 
             let Some(method) = method else {
-                return Err(anyhow!("no method was provided.").into());
+                return Err(::anyhow::anyhow!("no method was provided.").into());
             };
 
-            let mut buf = Vec::new();
+            let mut buf = ::std::vec::Vec::new();
             match method {
                 "sample_binary_method" => {
                     __mybinary_ipc_sample_binary_method(req.body(), &mut buf)?
                 }
-                m => return Err(anyhow!("unrecognized method. {}", m).into()),
+                m => return Err(::anyhow::anyhow!("unrecognized method. {}", m).into()),
             }
 
-            tauri::http::ResponseBuilder::new()
-                .header(tauri::http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+            ::tauri::http::ResponseBuilder::new()
+                .header(::tauri::http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .body(buf)
         })
         .run(tauri::generate_context!())

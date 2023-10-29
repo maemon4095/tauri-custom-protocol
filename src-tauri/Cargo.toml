@@ -19,7 +19,6 @@ serde_json = "1.0"
 chrono = "0.4.31"
 anyhow = "1.0.75"
 bincode = { workspace = true }
-mybinary_macro = { path = "./mybinary_macro" }
 serde_bytes = "0.11"
 
 [features]

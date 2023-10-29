@@ -15,11 +15,7 @@ js-sys = "0.3"
 bincode = { workspace = true }
 
 [workspace]
-members = [
-    "src-tauri",
-    "src-tauri/mybinary_macro",
-    "src-tauri/mybinary_macro/implement",
-]
+members = ["src-tauri"]
 
 [workspace.dependencies]
 bincode = "1.3.3"
