@@ -5,7 +5,7 @@ export default function App() {
   const onClick = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
   ) => {
-    const res = await fetch("https://mybinary.localhost/");
+    const res = await fetch("https://bin_channel.localhost/");
     const decoded = res.body!.pipeThrough(new TextDecoderStream("utf8"));
 
     setResponse((await decoded.getReader().read()).value!);
