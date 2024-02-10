@@ -3,8 +3,8 @@ use tauri::http::header::HeaderValue;
 pub struct Port(u32);
 
 impl Port {
-    pub fn as_u32(&self) -> &u32 {
-        &self.0
+    pub fn as_u32(&self) -> u32 {
+        self.0
     }
 
     pub fn from_u32(port: u32) -> Self {
@@ -16,8 +16,6 @@ impl TryFrom<Port> for HeaderValue {
     type Error = <HeaderValue as TryFrom<u32>>::Error;
 
     fn try_from(value: Port) -> Result<Self, Self::Error> {
-        <HeaderValue as TryFrom<u32>>::try_from(value.0);
-
         value.0.try_into()
     }
 }
@@ -37,8 +35,14 @@ where
 {
     type Error: std::error::Error;
 
-    fn connect(&self, app: tauri::AppHandle<R>, payload: Vec<u8>) -> Result<Port, Self::Error>;
-    fn demux(&self, port: Port, payload: Vec<u8>) -> Result<(), Self::Error>;
+    fn connect(
+        &self,
+        app: tauri::AppHandle<R>,
+        event_path: String,
+        payload: Vec<u8>,
+    ) -> Result<Port, Self::Error>;
+    fn input(&self, port: Port, payload: Vec<u8>) -> Result<(), Self::Error>;
+    fn output(&self, port: Port) -> Result<Vec<u8>, Self::Error>;
     fn error(&self, port: Port, payload: Vec<u8>) -> Result<(), Self::Error>;
     fn close(&self, port: Port, payload: Vec<u8>) -> Result<(), Self::Error>;
 }
@@ -59,17 +63,28 @@ where
     move |app, req| {
         let headers = req.headers();
 
-        const HEADER_EVENT: &'static str = "X-Tauri-Bin-Ipc-Event";
+        const HEADER_CONNECTION_EVENT: &'static str = "X-Tauri-Bin-Ipc-Connection-Event";
+        const HEADER_EVENT_PATH: &'static str = "X-Tauri-Bin-Ipc-Event-Path";
         const HEADER_PORT: &'static str = "X-Tauri-Bin-Ipc-Port";
 
         let res = tauri::http::ResponseBuilder::new().header("Access-Control-Allow-Origin", "*");
 
-        return match headers.get(HEADER_EVENT) {
+        return match headers.get(HEADER_CONNECTION_EVENT) {
             Some(event) => match event.as_bytes() {
-                b"CONNECT" => match demuxer.connect(app.clone(), req.body().clone()) {
-                    Ok(port) => res.status(200).header(HEADER_PORT, port).body(Vec::new()),
-                    Err(e) => Err(e.into()),
-                },
+                b"CONNECT" => {
+                    let Some(path) = headers.get(HEADER_EVENT_PATH) else {
+                        return Err(anyhow!("no event path were given.").into());
+                    };
+
+                    match demuxer.connect(
+                        app.clone(),
+                        path.to_str().unwrap().to_string(),
+                        req.body().clone(),
+                    ) {
+                        Ok(port) => res.status(200).header(HEADER_PORT, port).body(Vec::new()),
+                        Err(e) => Err(e.into()),
+                    }
+                }
                 b"ERROR" => {
                     // 異常によるソケットの切断
                     let Some(port) = headers.get(HEADER_PORT) else {
@@ -104,9 +119,19 @@ where
                 };
 
                 let port: Port = port.try_into()?;
-                match demuxer.demux(port, req.body().clone()) {
-                    Ok(_) => res.status(200).body(Vec::new()),
-                    Err(e) => Err(e.into()),
+
+                match req.method().as_str() {
+                    "POST" => match demuxer.input(port, req.body().clone()) {
+                        Ok(()) => res.status(200).body(Vec::new()),
+                        Err(e) => Err(e.into()),
+                    },
+                    "GET" => match demuxer.output(port) {
+                        Ok(payload) => res.status(200).body(payload),
+                        Err(e) => Err(e.into()),
+                    },
+                    _ => {
+                        return Err(anyhow!("bin_channel unrecognized method.").into());
+                    }
                 }
             }
         };
